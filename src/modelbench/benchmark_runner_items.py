@@ -1,4 +1,5 @@
 import dataclasses
+import inspect
 import pathlib
 import time
 from dataclasses import dataclass
@@ -10,7 +11,9 @@ from modelgauge.annotation import Annotation
 from modelgauge.annotator import CompletionAnnotator
 from modelgauge.base_test import PromptResponseTest
 from modelgauge.dependency_helper import FromSourceDependencyHelper
+from modelgauge.dependency_injection import inject_dependencies
 from modelgauge.external_data import WebData
+from modelgauge.secret_values import RawSecrets, Secret, InjectSecret
 from modelgauge.single_turn_prompt_response import (
     TestItem,
     PromptWithContext,
@@ -29,14 +32,28 @@ from modelgauge.sut import SUTResponse, SUTCompletion
 class ModelgaugeTestWrapper:
     """An attempt at cleaning up the test interface"""
 
-    def __init__(self, actual_test: PromptResponseTest, dependency_data_path):
+    def __init__(self, actual_test: PromptResponseTest, dependency_data_path, secrets: RawSecrets = None):
         super().__init__()
         self.actual_test = actual_test
         self.uid = actual_test.uid
         self.dependency_data_path = dependency_data_path
+        self.secrets = secrets
         self.dependency_helper = FromSourceDependencyHelper(
-            self.dependency_data_path, self.actual_test.get_dependencies(), required_versions={}
+            self.dependency_data_path, self._get_dependencies(actual_test), required_versions={}
         )
+
+    def _get_dependencies(self, actual_test: PromptResponseTest):
+        print(f"actual_test={actual_test}")
+        args = []
+        for key, param in inspect.signature(actual_test.get_dependencies).parameters.items():
+            print(f"{key}={param}")
+            if issubclass(param.annotation, Secret):
+                args.append(InjectSecret(param.annotation))
+            else:
+                raise ValueError(f"Don't know how to handle {param.annotation} for {actual_test}.get_dependencies")
+        new_args, new_kw_args = inject_dependencies(args=args, kwargs={}, secrets=self.secrets)
+        print(f"new_args={new_args}")
+        return self.actual_test.get_dependencies(*new_args, **new_kw_args)
 
     def make_test_items(self) -> List[TestItem]:
         return self.actual_test.make_test_items(self.dependency_helper)

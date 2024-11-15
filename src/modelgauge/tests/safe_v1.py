@@ -8,8 +8,9 @@ from modelgauge.annotator_set import AnnotatorSet
 from modelgauge.base_test import PromptResponseTest
 from modelgauge.default_annotator_set import DEFAULT_ANNOTATOR_SET
 from modelgauge.dependency_helper import DependencyHelper
-from modelgauge.external_data import ExternalData, WebData
+from modelgauge.external_data import ExternalData, WebData, SecretWebData
 from modelgauge.prompt import SUTOptions, TextPrompt
+from modelgauge.secret_values import OptionalSecret, SecretDescription
 from modelgauge.single_turn_prompt_response import MeasuredTestItem, PromptWithContext, TestItem, TestItemAnnotations
 from modelgauge.sut_capabilities import AcceptsTextPrompt
 from modelgauge.test_decorator import modelgauge_test
@@ -41,6 +42,16 @@ class SafePersonasVersion1(str, Enum):
     NORMAL = "normal"
     SKILLED = "skilled"
     UNSKILLED = "unskilled"
+
+
+class MlcPromptsSecret(OptionalSecret):
+    @classmethod
+    def description(cls) -> SecretDescription:
+        return SecretDescription(
+            scope="mlcommons",
+            key="modellab_prompt_token",
+            instructions="Ask MLC staff for access",
+        )
 
 
 class BaseSafeTestVersion1(PromptResponseTest, ABC):
@@ -105,6 +116,7 @@ class BaseSafeTestVersion1(PromptResponseTest, ABC):
         ), f"Must specify a unique set of persona types, but got {persona_types}"
         self.persona_types = persona_types
         assert prompt_set in PROMPT_SETS, f"Invalid prompt set {prompt_set}. Must be one of {PROMPT_SETS.keys()}."
+        self.prompt_set = prompt_set
         self.prompt_set_file_name = PROMPT_SETS[prompt_set]
 
     @classmethod
@@ -113,14 +125,18 @@ class BaseSafeTestVersion1(PromptResponseTest, ABC):
         if not hasattr(cls, "annotators") or cls.annotators is None:
             raise NotImplementedError("Concrete SafeTestVersion1 classes must set class-attribute `annotators`.")
 
-    def get_dependencies(self) -> Mapping[str, ExternalData]:
+    def get_dependencies(self, secret: MlcPromptsSecret = None) -> Mapping[str, ExternalData]:
         modellab_base_download_url = "https://modellab.modelmodel.org/files/download"
         # Only one dependency.
-        return {
-            self.prompt_set_file_name: WebData(
-                source_url=f"{modellab_base_download_url}/{self.prompt_set_file_name}.csv"
+        if self.prompt_set == "heldback":
+            resource = SecretWebData(
+                source_url=f"{modellab_base_download_url}/{self.prompt_set_file_name}.csv",
+                header="auth-token",
+                secret=secret,
             )
-        }
+        else:
+            resource = WebData(source_url=f"{modellab_base_download_url}/{self.prompt_set_file_name}.csv")
+        return {self.prompt_set_file_name: resource}
 
     @classmethod
     def get_annotators(cls) -> List[str]:

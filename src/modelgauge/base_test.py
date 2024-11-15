@@ -1,4 +1,6 @@
 from abc import ABC, abstractmethod
+from typing import Dict, List, Mapping, Sequence, Type
+
 from modelgauge.dependency_helper import DependencyHelper
 from modelgauge.external_data import ExternalData
 from modelgauge.record_init import InitializationRecord
@@ -10,7 +12,6 @@ from modelgauge.single_turn_prompt_response import (
 from modelgauge.sut_capabilities import SUTCapability
 from modelgauge.tracked_object import TrackedObject
 from modelgauge.typed_data import Typeable, TypedData
-from typing import Dict, List, Mapping, Sequence, Type
 
 
 class BaseTest(TrackedObject):
@@ -51,7 +52,7 @@ class PromptResponseTest(BaseTest, ABC):
         pass
 
     @abstractmethod
-    def get_dependencies(self) -> Mapping[str, ExternalData]:
+    def get_dependencies(self, *args, **kwargs) -> Mapping[str, ExternalData]:
         """Return a mapping of external dependency name to how it can be found downloaded."""
         pass
 
