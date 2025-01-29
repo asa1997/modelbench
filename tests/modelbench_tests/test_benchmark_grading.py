@@ -3,12 +3,12 @@ from datetime import datetime
 from unittest import mock
 
 import pytest
-
 from modelbench.benchmarks import BenchmarkScore, GeneralPurposeAiChatBenchmarkV1
-from modelbench.hazards import HazardScore, SafeHazardV1, Standards
+from modelbench.hazards import HazardScore, SafeHazardV1
 from modelbench.scoring import ValueEstimate
-
+from modelbench.standards import Standards
 from modelgauge.locales import EN_US
+
 
 # NOTE: the following functions behave like fixtures, but they are not marked as @pytest.fixture
 # because we call them directly in the parametrize decorators, and pytest doesn't like that.

@@ -4,12 +4,10 @@ from typing import List, Mapping
 from unittest.mock import MagicMock
 
 import pytest
-
 from modelbench.benchmarks import BenchmarkDefinition, BenchmarkScore, GeneralPurposeAiChatBenchmarkV1
-from modelbench.hazards import STANDARDS, HazardDefinition, HazardScore, SafeHazardV1  # usort: skip
+from modelbench.hazards import HazardDefinition, HazardScore, SafeHazardV1  # usort: skip
 from modelbench.scoring import ValueEstimate
 from modelgauge.locales import EN_US
-
 from modelgauge.prompt_sets import PROMPT_SETS, prompt_set_to_filename  # usort: skip
 from modelgauge.records import TestRecord
 from modelgauge.tests.safe_v1 import PersonaResult, SafePersonasVersion1, SafeTestResult, SafeTestVersion1
@@ -190,13 +188,6 @@ def test_hazard_score_test_scores(hazard, persona):
     score_key = next(iter(result.test_scores))
     assert score_key == hazard.uid
     assert result.test_scores[score_key].estimate == frac_safe
-
-
-def test_existing_standard():
-    assert STANDARDS.reference_standard_for(SafeHazardV1("dfm", EN_US, "practice").uid) is not None
-    assert STANDARDS.reference_standard_for(SafeHazardV1("dfm", EN_US, "official").uid) is not None
-    assert SafeHazardV1("dfm", EN_US, "practice").reference_standard() is not None
-    assert SafeHazardV1("dfm", EN_US, "official").reference_standard() is not None
 
 
 def test_missing_standard():

@@ -1,12 +1,12 @@
-import json
-import pathlib
 import warnings
 from abc import ABC, abstractmethod
-from statistics import fmean
 from typing import List, Mapping
 
 import casefy
-from modelgauge.base_test import BaseTest, PromptResponseTest
+from modelbench.scoring import LetterGradeMixin, NumericGradeMixin, ValueEstimate
+from modelbench.standards import STANDARDS
+from modelbench.uid import HasUid
+from modelgauge.base_test import PromptResponseTest
 from modelgauge.locales import display_for, validate_locale
 from modelgauge.prompt_sets import validate_prompt_set
 from modelgauge.records import TestRecord
@@ -14,9 +14,6 @@ from modelgauge.secret_values import RawSecrets
 from modelgauge.test_registry import TESTS
 from modelgauge.tests.safe_v1 import BaseSafeTestVersion1, SafeTestResult
 from pydantic import BaseModel, ConfigDict
-
-from modelbench.scoring import LetterGradeMixin, NumericGradeMixin, ValueEstimate
-from modelbench.uid import HasUid
 
 
 class HazardDefinition(ABC, HasUid):
@@ -155,33 +152,3 @@ class HazardScore(BaseModel, LetterGradeMixin, NumericGradeMixin):
 
     def actual_score(self) -> float:
         return self.score.estimate
-
-
-class Standards:
-
-    def __init__(self, path: pathlib.Path):
-        self.data = None
-        self.path = path
-        self.reload()
-
-    def reload(self):
-        with open(self.path) as f:
-            self.data = json.load(f)["standards"]
-
-    def reference_standard_for(self, name):
-        if name not in self.data["reference_standards"]:
-            raise ValueError(f"No standard yet for {name}. Run `modelbench calibrate --update` to add one.")
-        return self.data["reference_standards"][name]
-
-    def average_standard_across_references(self, locale: str = "", version: str = "1.0") -> float:
-        assert version == "1.0", "Only version 1.0 is supported."
-        if not locale:
-            raise ValueError("Locale is required for v1.0 scoring.")
-        locale = locale.lower()
-        validate_locale(locale)
-        values = [v for k, v in self.data["reference_standards"].items() if locale in k]
-        assert len(values), "No reference values found"
-        return fmean(values)
-
-
-STANDARDS = Standards(pathlib.Path(__file__).parent / "standards.json")

@@ -1,6 +1,6 @@
 import pytest
-from modelbench.hazards import Standards
 from modelbench.scoring import LetterGradeMixin, NumericGradeMixin, score_to_ordinal_grade
+from modelbench.standards import Standards
 
 
 class FakeStandards(Standards):
