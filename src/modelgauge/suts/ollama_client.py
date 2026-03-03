@@ -113,7 +113,13 @@ class OllamaCompletionsSUT(PromptResponseSUT):
         super().__init__(uid)
         self.model = model
         self.api_key = api_key.value if api_key else None
-        self.base_url = base_url.value if base_url else DEFAULT_OLLAMA_BASE_URL
+        
+        # Handle base_url: check if it's an object with value, or use default
+        if base_url and base_url.value:
+            self.base_url = base_url.value
+        else:
+            self.base_url = DEFAULT_OLLAMA_BASE_URL
+        
         # Ensure base_url doesn't end with /
         self.base_url = self.base_url.rstrip("/")
         self._api_endpoint = f"{self.base_url}/api/generate"
