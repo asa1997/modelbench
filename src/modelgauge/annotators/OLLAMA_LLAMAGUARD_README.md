@@ -73,7 +73,47 @@ base_url = "http://your-ollama-host:11434"
 
 ## Usage
 
-### Using the Annotator in Code
+### Where to Use the Annotator
+
+The Ollama LlamaGuard annotator is used in **three main places**:
+
+#### 1. **In Test Classes** (Most Common)
+
+When creating or modifying safety tests, specify the annotator in the `get_annotators()` method:
+
+```python
+from modelgauge.test_decorator import modelgauge_test
+from modelgauge.base_test import PromptResponseTest
+
+@modelgauge_test(requires_sut_capabilities=[AcceptsTextPrompt])
+class MySafetyTest(PromptResponseTest):
+    @classmethod
+    def get_annotators(cls) -> List[str]:
+        # Change from Together API to local Ollama
+        return ["ollama_llama_guard_3"]  # Instead of ["llama_guard_2"]
+```
+
+**Example: Modify existing tests** in `src/modelgauge/tests/safe_v1.py`:
+
+```python
+# Before (line 219):
+@modelgauge_test(requires_sut_capabilities=[AcceptsTextPrompt])
+class SafeTestVersion1(BaseSafeTestVersion1):
+    @classmethod
+    def get_annotators(cls) -> List[str]:
+        return ["llama_guard_2"]  # Uses Together API
+
+# After:
+@modelgauge_test(requires_sut_capabilities=[AcceptsTextPrompt])
+class SafeTestVersion1(BaseSafeTestVersion1):
+    @classmethod
+    def get_annotators(cls) -> List[str]:
+        return ["ollama_llama_guard_3"]  # Uses local Ollama
+```
+
+#### 2. **In Standalone Scripts** (Testing/Development)
+
+For testing or one-off evaluations:
 
 ```python
 from modelgauge.annotator_registry import ANNOTATORS
@@ -99,6 +139,21 @@ annotation = annotator.translate_response(request, response)
 print(f"Is safe: {annotation.is_safe}")
 print(f"Violation categories: {annotation.violation_categories}")
 ```
+
+#### 3. **Via Command Line** (Running Benchmarks)
+
+The annotator is automatically used when you run benchmarks that reference tests using it:
+
+```bash
+# Run a benchmark (annotator determined by test's get_annotators() method)
+modelbench benchmark --sut your-model-name --benchmark general_purpose_ai_chat_benchmark-1.0
+```
+
+The benchmark system automatically:
+1. Reads which tests to run from the benchmark definition
+2. Checks what annotators each test needs (via `get_annotators()`)
+3. Instantiates the annotators (e.g., `ollama_llama_guard_3`)
+4. Applies them to SUT responses
 
 ### Available Annotators
 
@@ -215,22 +270,59 @@ ollama pull llama-guard3:q4_0
 
 ## Integration with Benchmarks
 
-To use the Ollama LlamaGuard annotator in your benchmarks, update your benchmark configuration to use `ollama_llama_guard_3` instead of `llama_guard_2`.
+To use the Ollama LlamaGuard annotator in your benchmarks, you need to modify the test classes that currently use `llama_guard_2`.
 
-### Example Configuration Change
+### Step-by-Step Integration
 
-Before (Together API):
-```json
-{
-  "annotators": ["llama_guard_2"]
-}
+#### 1. **Modify Safety Tests**
+
+Edit [src/modelgauge/tests/safe_v1.py](../../tests/safe_v1.py) around **line 219**:
+
+```python
+@modelgauge_test(requires_sut_capabilities=[AcceptsTextPrompt])
+class SafeTestVersion1(BaseSafeTestVersion1):
+    @classmethod
+    def get_annotators(cls) -> List[str]:
+        return ["ollama_llama_guard_3"]  # Changed from "llama_guard_2"
 ```
 
-After (Local Ollama):
-```json
-{
-  "annotators": ["ollama_llama_guard_3"]
-}
+#### 2. **Modify Security Tests**
+
+Edit [src/modelgauge/tests/security.py](../../tests/security.py):
+
+Around **line 134** for `SecurityNaiveTest`:
+```python
+@modelgauge_test(requires_sut_capabilities=[AcceptsTextPrompt])
+class SecurityNaiveTest(BaseSecurityNaiveTest):
+    @classmethod
+    def get_annotators(cls) -> List[str]:
+        return ["ollama_llama_guard_3"]  # Changed from "llama_guard_2"
+```
+
+Around **line 154** for `SecurityJailbreakTest`:
+```python
+@modelgauge_test(requires_sut_capabilities=[AcceptsTextPrompt])
+class SecurityJailbreakTest(BaseSecurityJailbreakTest):
+    @classmethod
+    def get_annotators(cls) -> List[str]:
+        return ["ollama_llama_guard_3"]  # Changed from "llama_guard_2"
+```
+
+#### 3. **Run Your Benchmarks**
+
+After making these changes, run your benchmarks normally:
+
+```bash
+# No configuration changes needed - it will automatically use Ollama
+modelbench benchmark --sut your-model-name --benchmark general_purpose_ai_chat_benchmark-1.0
+```
+
+#### 4. **Verify It's Working**
+
+Check the logs for references to Ollama instead of Together API:
+```bash
+# You should see requests to localhost:11434 instead of api.together.xyz
+tail -f ~/.modelbench/logs/benchmark.log
 ```
 
 ## Performance Tips

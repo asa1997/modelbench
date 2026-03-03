@@ -217,7 +217,7 @@ class BaseSafeTestVersion1(PromptResponseTest, ABC):
 class SafeTestVersion1(BaseSafeTestVersion1):
     @classmethod
     def get_annotators(cls) -> List[str]:
-        return ["llama_guard_2"]
+        return ["ollama_llama_guard_3"]
 
 
 ALL_PERSONAS = [

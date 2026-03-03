@@ -132,7 +132,7 @@ class BaseSecurityJailbreakTest(BaseSecurityTest, ABC):
 class SecurityJailbreakTest(BaseSecurityJailbreakTest):
     @classmethod
     def get_annotators(cls) -> List[str]:
-        return ["llama_guard_2"]
+        return ["ollama_llama_guard_3"]
 
 
 class BaseSecurityNaiveTest(BaseSecurityTest, ABC):
@@ -152,7 +152,7 @@ class BaseSecurityNaiveTest(BaseSecurityTest, ABC):
 class SecurityNaiveTest(BaseSecurityNaiveTest):
     @classmethod
     def get_annotators(cls) -> List[str]:
-        return ["llama_guard_2"]
+        return ["ollama_llama_guard_3"]
 
 
 def register_tests(cls, evaluator=None):
